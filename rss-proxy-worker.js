@@ -1,33 +1,11 @@
 // rss-proxy-worker.js — v2, con endurecimiento de seguridad
 // Proxy RSS propio para SEÑAL.
 //
-// CAMBIOS RESPECTO A LA v1 (auditoría de seguridad):
-// - Ya no es un proxy abierto: exige una clave compartida (SHARED_SECRET).
-//   Sin ella, cualquiera que descubriera tu URL de Worker podía usarlo
-//   como proxy CORS gratuito para lo que quisiera, gastando tu cuota.
-// - Restringe qué origen (Origin) puede llamarlo, no solo con la clave.
-// - Bloquea objetivos obviamente internos/locales (defensa en profundidad;
-//   Cloudflare ya impide por su cuenta el acceso directo a IPs desde
-//   Workers, pero añadimos una capa extra a nivel de aplicación).
-// - Limita el tamaño de la respuesta reenviada, para evitar abuso de ancho
-//   de banda/cuota si alguien intentara usarlo para descargar archivos
-//   grandes en lugar de feeds RSS.
-//
-// ANTES DE DESPLEGAR:
-// 1. Cambia SHARED_SECRET por una cadena aleatoria larga tuya (por ejemplo,
-//    genera una en https://1password.com/password-generator/ — no hace
-//    falta que la recuerdes, solo cópiala aquí Y en noticias-tech.html,
-//    en la constante PROXY_KEY).
-// 2. Cambia ALLOWED_ORIGINS por el dominio real donde publiques la app
-//    (ej: 'https://tu-usuario.github.io'). Puedes dejar varios.
-//
-// CÓMO DESPLEGARLO: igual que la v1 — panel de Cloudflare Workers,
-// "Edit code", pega esto entero, "Deploy".
 
 const SHARED_SECRET = 'e25bf4aabf7eac8f7a0678d7e147db3863f3b96488a54c68';
 
 const ALLOWED_ORIGINS = [
-  'https://TU-USUARIO.github.io',   // <- sustituye por tu dominio real de GitHub Pages
+  'https://jarudalapalma.github.io/se-al_noticias/',   // <- sustituye por tu dominio real de GitHub Pages
   'null',                            // permite abrir el archivo local (file://) mientras pruebas
 ];
 
