@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SEÑAL">
+<meta name="theme-color" content="#EDEEE7">
+<meta name="color-scheme" content="light">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src https: data:; connect-src 'self' https://wispy-lake-2968.d2v5nghmw6.workers.dev; base-uri 'none'; form-action 'none'; frame-ancestors 'none';">
+<title>SEÑAL — Wire Tech</title>
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#EDEEE7;
+    --paper-raised:#F7F7F2;
+    --ink:#1B1D1B;
+    --ink-soft:#5B5F58;
+    --line:#D3D4CA;
+    --c-gadgets:#A8551F;
+    --c-gadgets-soft:#F1E1D2;
+    --c-seguridad:#2C5B4B;
+    --c-seguridad-soft:#DCE8E1;
+    --c-movil:#31488F;
+    --c-movil-soft:#DEE3F2;
+    --c-juegos:#8B3560;
+    --c-juegos-soft:#F0DDE7;
+    --ok:#2C5B4B;
+    --err:#A8351F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+    padding-bottom:48px;
+  }
+  a{color:inherit;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    border-bottom:1px solid var(--ink);
+    padding:14px 16px 10px;
+  }
+  .brand-row{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-family:'Arial Narrow', Arial, sans-serif;
+  }
+  .brand{
+    font-size:30px; font-weight:800; letter-spacing:0.5px;
+    text-transform:uppercase; line-height:0.9;
+  }
+  .brand small{
+    display:block; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:9.5px; font-weight:500; letter-spacing:1.5px;
+    color:var(--ink-soft); text-transform:uppercase; margin-top:3px;
+  }
+  .clock{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:11px; color:var(--ink-soft); text-align:right;
+    line-height:1.5;
+  }
+  .clock b{color:var(--ink); font-weight:600;}
+
+  /* signal status strip — signature element */
+  .signal-strip{
+    margin-top:12px; display:flex; gap:0; border:1px solid var(--ink);
+    background:var(--paper-raised); overflow:hidden;
+  }
+  .signal-item{
+    flex:1; padding:6px 8px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:9.5px; border-right:1px solid var(--line);
+    display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden;
+  }
+  .signal-item:last-child{border-right:none;}
+  .dot{width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--line);}
+  .dot.ok{background:var(--ok);}
+  .dot.err{background:var(--err);}
+  .dot.pending{background:#C9A227; animation:pulse 1s infinite;}
+  @keyframes pulse{50%{opacity:0.3;}}
+  .signal-item span{overflow:hidden; text-overflow:ellipsis;}
+
+  /* ---------- FILTERS ---------- */
+  .filters{
+    display:flex; gap:8px; padding:12px 16px; overflow-x:auto;
+    scrollbar-width:none; background:var(--paper);
+    position:sticky; top:0; z-index:19;
+  }
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px;
+    font-weight:600; letter-spacing:0.3px; text-transform:uppercase;
+    padding:7px 12px; border:1px solid var(--ink); background:var(--paper-raised);
+    cursor:pointer; user-select:none; transition:all .15s ease;
+  }
+  .chip.active{background:var(--ink); color:var(--paper);}
+  .chip[data-cat="gadgets"].active{background:var(--c-gadgets); border-color:var(--c-gadgets); color:#fff;}
+  .chip[data-cat="seguridad"].active{background:var(--c-seguridad); border-color:var(--c-seguridad); color:#fff;}
+  .chip[data-cat="movil"].active{background:var(--c-movil); border-color:var(--c-movil); color:#fff;}
+  .chip[data-cat="juegos"].active{background:var(--c-juegos); border-color:var(--c-juegos); color:#fff;}
+
+  /* ---------- REFRESH BAR ---------- */
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px 10px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:10.5px; color:var(--ink-soft);
+  }
+  .refresh-btn{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:600;
+    background:none; border:1px solid var(--ink); padding:5px 10px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; gap:6px;
+  }
+  .refresh-btn:active{background:var(--ink); color:var(--paper);}
+  .refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- FEED ---------- */
+  main{padding:4px 16px 24px;}
+  .card{
+    display:block; background:var(--paper-raised); border:1px solid var(--line);
+    border-left:4px solid var(--ink); margin-bottom:12px; padding:12px 14px;
+    text-decoration:none; color:var(--ink); position:relative;
+  }
+  .card[data-cat="gadgets"]{border-left-color:var(--c-gadgets);}
+  .card[data-cat="seguridad"]{border-left-color:var(--c-seguridad);}
+  .card[data-cat="movil"]{border-left-color:var(--c-movil);}
+  .card[data-cat="juegos"]{border-left-color:var(--c-juegos);}
+
+  .card-meta{
+    display:flex; align-items:center; gap:8px; margin-bottom:7px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.4px; color:var(--ink-soft);
+  }
+  .cat-tag{
+    padding:2px 6px; font-weight:700; color:#fff; font-size:9px;
+  }
+  .cat-tag[data-cat="gadgets"]{background:var(--c-gadgets);}
+  .cat-tag[data-cat="seguridad"]{background:var(--c-seguridad);}
+  .cat-tag[data-cat="movil"]{background:var(--c-movil);}
+  .cat-tag[data-cat="juegos"]{background:var(--c-juegos);}
+
+  .card-body{display:flex; gap:10px;}
+  .card-text{flex:1; min-width:0;}
+  .card-title{
+    font-size:16.5px; font-weight:600; line-height:1.28; margin:0 0 5px;
+  }
+  .card-excerpt{
+    font-size:12.5px; color:var(--ink-soft); line-height:1.4;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; letter-spacing:0.1px;
+  }
+  .card-thumb{
+    width:74px; height:74px; object-fit:cover; flex-shrink:0;
+    background:var(--line); filter:grayscale(15%);
+  }
+
+  .card{cursor:pointer;}
+  .card-excerpt.open{
+    -webkit-line-clamp:unset; display:block;
+  }
+  .source-link{
+    display:inline-block; margin-top:8px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:11px; font-weight:600; text-decoration:underline;
+    color:var(--ink) !important;
+  }
+
+  .empty, .loading{
+    text-align:center; padding:60px 20px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    color:var(--ink-soft); font-size:12.5px; line-height:1.7;
+  }
+  .loading .dot{display:inline-block; animation:pulse 1s infinite; margin:0 1px;}
+
+  /* ---------- SOURCES PANEL ---------- */
+  .sources-panel{
+    margin:0 16px 14px; border:1px solid var(--ink); background:var(--paper-raised);
+    padding:14px;
+  }
+  .sources-panel h3{
+    margin:0 0 10px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.4px;
+  }
+  .sources-group{margin-bottom:12px;}
+  .sources-group-label{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:0.4px; margin-bottom:5px;
+  }
+  .sources-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:6px 8px; background:var(--paper); border:1px solid var(--line); margin-bottom:5px;
+    font-size:12.5px;
+  }
+  .sources-row-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sources-row-url{
+    display:block; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px;
+    color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .remove-btn{
+    flex-shrink:0; background:none; border:1px solid var(--err); color:var(--err);
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:700;
+    width:22px; height:22px; cursor:pointer; line-height:1;
+  }
+  .sources-empty{font-size:12px; color:var(--ink-soft); font-style:italic; margin-bottom:8px;}
+  .sources-form{
+    display:flex; flex-direction:column; gap:6px; margin-top:10px;
+    padding-top:12px; border-top:1px dashed var(--line);
+  }
+  .sources-form input, .sources-form select{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:12.5px; padding:7px 8px;
+    border:1px solid var(--ink); background:var(--paper); color:var(--ink);
+  }
+  .sources-form button{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.3px; padding:8px; cursor:pointer;
+    background:var(--ink); color:var(--paper); border:none;
+  }
+  .sources-error{font-size:11.5px; color:var(--err); font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;}
+
+  /* ---------- LEGAL MODAL ---------- */
+  .legal-overlay{
+    position:fixed; inset:0; background:rgba(27,29,27,0.55); z-index:60;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .legal-panel{
+    background:var(--paper); width:100%; max-width:640px; max-height:88vh;
+    overflow-y:auto; border-top:1px solid var(--ink); padding-bottom:24px;
+  }
+  .legal-top{
+    position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line);
+    padding:12px 16px; display:flex; align-items:center; justify-content:space-between; z-index:2;
+  }
+  .legal-top h2{margin:0; font-size:15px;}
+  .legal-close{
+    font-family:ui-monospace, monospace; font-size:11px; font-weight:600;
+    background:none; border:1px solid var(--ink); padding:5px 10px; cursor:pointer;
+  }
+  .legal-body{padding:6px 18px 4px; font-size:13.5px; line-height:1.6;}
+  .legal-body h3{font-size:14px; margin:20px 0 4px; border-bottom:1px solid var(--line); padding-bottom:4px;}
+  .legal-body h4{font-size:12.5px; margin:14px 0 3px;}
+  .legal-body p, .legal-body li{margin:0 0 8px;}
+  .legal-body ul{padding-left:18px;}
+  .legal-note{
+    background:var(--paper-raised); border:1px solid var(--line); padding:8px 10px;
+    font-family:ui-monospace, monospace; font-size:11px; color:var(--ink-soft); margin:6px 0 16px;
+  }
+
+  footer{
+    padding:18px 16px 30px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px;
+    color:var(--ink-soft); border-top:1px solid var(--line); margin-top:10px; line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">SEÑAL<small>Wire de tecnología &middot; ES</small></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+  <div class="signal-strip" id="signalStrip"></div>
+</header>
+
+<div class="filters" id="filters"></div>
+
+<div class="toolbar">
+  <span id="countLabel">Cargando fuentes…</span>
+  <div style="display:flex; gap:8px;">
+    <button class="refresh-btn" id="sourcesBtn">Fuentes</button>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      Actualizar
+    </button>
+  </div>
+</div>
+
+<div id="sourcesPanel"></div>
+
+<main id="main">
+  <div class="loading">SINTONIZANDO SEÑALES<br><span class="dot"></span><span class="dot" style="animation-delay:.15s"></span><span class="dot" style="animation-delay:.3s"></span></div>
+</main>
+
+<footer id="footer"></footer>
+
+<div id="legalRoot"></div>
+
+<script>
+// ============================================================
+// CONFIGURA AQUÍ TU PROXY PROPIO (ver rss-proxy-worker.js)
+// Sustituye esta URL por la que te dé Cloudflare Workers al desplegar.
+// ============================================================
+const PROXY_BASE = 'https://wispy-lake-2968.d2v5nghmw6.workers.dev/?url=';
+
+// Debe coincidir EXACTAMENTE con SHARED_SECRET en tu rss-proxy-worker.js.
+// Sin esto, tu Worker rechaza la petición con 403.
+const PROXY_KEY = 'e25bf4aabf7eac8f7a0678d7e147db3863f3b96488a54c68';
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+function safeHref(url){
+  try{
+    const u = new URL(url);
+    if(u.protocol === 'http:' || u.protocol === 'https:') return u.toString();
+  }catch(e){}
+  return '#';
+}
+
+const CATEGORIES = [
+  { id:'gadgets',    label:'Gadgets y hardware' },
+  { id:'seguridad',  label:'Ciberseguridad' },
+  { id:'movil',      label:'Tecnología móvil' },
+  { id:'juegos',     label:'Videojuegos' },
+];
+
+const DEFAULT_FEEDS = [
+  {id:'d1', cat:'gadgets',   name:'Xataka',                 url:'https://feeds.weblogssl.com/xataka2'},
+  {id:'d2', cat:'gadgets',   name:'Genbeta',                url:'https://feeds.weblogssl.com/genbeta'},
+  {id:'d3', cat:'seguridad', name:'Hispasec · una-al-día',  url:'https://unaaldia.hispasec.com/feeds/posts/default'},
+  {id:'d4', cat:'seguridad', name:'WeLiveSecurity ES',      url:'https://www.welivesecurity.com/es/feed/'},
+  {id:'d5', cat:'movil',     name:'Xataka Android',         url:'https://feeds.weblogssl.com/xatakandroid'},
+  {id:'d6', cat:'movil',     name:'Applesfera',             url:'https://feeds.weblogssl.com/applesfera'},
+  {id:'d7', cat:'juegos',    name:'Vida Extra',             url:'https://feeds.weblogssl.com/vidaextra'},
+  {id:'d8', cat:'juegos',    name:'Vandal · Hardware',      url:'https://vandal.elespanol.com/rss/noticias/hardware'},
+];
+
+const FEEDS_KEY = 'senal_feeds_v1';
+
+function loadFeeds(){
+  try{
+    const raw = localStorage.getItem(FEEDS_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length) return parsed; }
+  }catch(e){}
+  return DEFAULT_FEEDS.slice();
+}
+function saveFeeds(){
+  try{ localStorage.setItem(FEEDS_KEY, JSON.stringify(FEEDS)); }catch(e){}
+}
+
+let FEEDS = loadFeeds();
+let ALL_ITEMS = [];
+let ACTIVE_FILTER = 'all';
+const PROXY_READY = !PROXY_BASE.includes('TU-WORKER');
+
+function catLabel(id){ return CATEGORIES.find(c=>c.id===id)?.label || id; }
+
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').innerHTML =
+    `<b>${d.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}).toUpperCase()}</b><br>${d.toLocaleTimeString('es-ES')}`;
+}
+updateClock(); setInterval(updateClock, 1000);
+
+function renderFilters(){
+  const wrap = document.getElementById('filters');
+  const all = [{id:'all', label:'Todo'}, ...CATEGORIES];
+  wrap.innerHTML = all.map(c =>
+    `<button class="chip ${c.id===ACTIVE_FILTER?'active':''}" data-cat="${c.id}">${c.label}</button>`
+  ).join('');
+  wrap.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      ACTIVE_FILTER = btn.dataset.cat;
+      renderFilters();
+      renderFeed();
+    });
+  });
+}
+
+function timeAgo(dateStr){
+  const diff = (Date.now() - new Date(dateStr).getTime())/1000;
+  if(diff < 60) return 'ahora';
+  if(diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+  return `hace ${Math.floor(diff/86400)} d`;
+}
+
+function stripHtml(html){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function extractImageFromHtml(html){
+  const m = (html||'').match(/<img[^>]+src="([^">]+)"/);
+  return m ? m[1] : null;
+}
+
+function text(node, selector){
+  const el = node.querySelector(selector);
+  return el ? el.textContent.trim() : '';
+}
+
+function parseFeedXml(xmlText, catId, feedName){
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  if(doc.querySelector('parsererror')) throw new Error('parse error');
+
+  const isAtom = doc.querySelector('feed') !== null;
+  const nodes = isAtom ? [...doc.querySelectorAll('entry')] : [...doc.querySelectorAll('item')];
+  if(!nodes.length) throw new Error('empty feed');
+
+  return nodes.slice(0,12).map(node=>{
+    let link = '';
+    if(isAtom){
+      const linkEl = node.querySelector('link[href]');
+      link = linkEl ? linkEl.getAttribute('href') : '';
+    } else {
+      link = text(node,'link');
+    }
+    const title = text(node,'title') || '(sin título)';
+    const dateStr = text(node,'pubDate') || text(node,'published') || text(node,'updated') || text(node,'date') || new Date().toISOString();
+    const rawDesc = text(node,'description') || text(node,'summary') || text(node,'content') || '';
+
+    let image = null;
+    const media = node.querySelector('thumbnail, [url]');
+    if(media && media.getAttribute('url')) image = media.getAttribute('url');
+    const enclosure = node.querySelector('enclosure[url]');
+    if(!image && enclosure && (enclosure.getAttribute('type')||'').startsWith('image')) image = enclosure.getAttribute('url');
+    if(!image) image = extractImageFromHtml(rawDesc);
+
+    return {
+      cat: catId,
+      source: feedName,
+      title: stripHtml(title),
+      link,
+      date: dateStr,
+      excerptShort: stripHtml(rawDesc).slice(0,160),
+      excerptFull: stripHtml(rawDesc).slice(0,1200),
+      image
+    };
+  });
+}
+
+function fetchProxy(targetUrl){
+  return fetch(PROXY_BASE + encodeURIComponent(targetUrl), {
+    cache:'no-store',
+    headers: { 'X-Senal-Key': PROXY_KEY }
+  });
+}
+
+async function fetchFeed(feed){
+  const res = await fetchProxy(feed.url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const xmlText = await res.text();
+  return parseFeedXml(xmlText, feed.cat, feed.name);
+}
+
+function setSignal(key, status){
+  const el = document.getElementById('sig-'+key);
+  if(!el) return;
+  const dot = el.querySelector('.dot');
+  dot.classList.remove('ok','err','pending');
+  dot.classList.add(status);
+}
+
+function renderSignalStrip(){
+  const wrap = document.getElementById('signalStrip');
+  wrap.innerHTML = FEEDS.map(f =>
+    `<div class="signal-item" id="sig-${escapeHtml(f.id)}"><span class="dot pending"></span><span>${escapeHtml(f.name)}</span></div>`
+  ).join('');
+}
+
+function renderSetupScreen(){
+  document.getElementById('main').innerHTML = `
+    <div class="empty" style="text-align:left; padding:24px 18px;">
+      <p style="font-weight:600; color:var(--ink); margin-bottom:10px;">FALTA CONFIGURAR TU PROXY</p>
+      Esta app necesita un proxy propio para leer RSS sin depender de servicios de terceros inestables.<br><br>
+      1. Abre <b>rss-proxy-worker.js</b> (el archivo que te di junto a esta app).<br>
+      2. Sigue las instrucciones del comentario inicial para desplegarlo gratis en Cloudflare Workers (2-3 min).<br>
+      3. Copia la URL que te den (tipo <i>https://tu-worker.workers.dev</i>).<br>
+      4. En este archivo HTML, edita la constante <b>PROXY_BASE</b> al principio del &lt;script&gt; y pega tu URL, dejando el final <b>/?url=</b>.<br>
+      5. Guarda y recarga.
+    </div>`;
+  document.getElementById('countLabel').textContent = 'Proxy no configurado';
+}
+
+let LOAD_GENERATION = 0;
+
+async function loadAll(){
+  if(!PROXY_READY){ renderSetupScreen(); return; }
+  const myGen = ++LOAD_GENERATION;
+
+  if(!FEEDS.length){
+    document.getElementById('signalStrip').innerHTML = '';
+    document.getElementById('main').innerHTML = `<div class="empty">NO TIENES NINGUNA FUENTE AÑADIDA<br>Pulsa "Fuentes" para añadir tu primer RSS.</div>`;
+    document.getElementById('countLabel').textContent = 'Sin fuentes';
+    return;
+  }
+
+  document.getElementById('refreshBtn').classList.add('spinning');
+  document.getElementById('countLabel').textContent = 'Cargando fuentes…';
+  renderSignalStrip();
+
+  const jobs = FEEDS.map(f =>
+    fetchFeed(f)
+      .then(items=>{ if(myGen===LOAD_GENERATION) setSignal(f.id,'ok'); return items; })
+      .catch(()=>{ if(myGen===LOAD_GENERATION) setSignal(f.id,'err'); return []; })
+  );
+
+  const results = await Promise.all(jobs);
+  if(myGen !== LOAD_GENERATION) return; // una carga más reciente ya está en curso: descartamos esta
+
+  ALL_ITEMS = results.flat().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  document.getElementById('refreshBtn').classList.remove('spinning');
+  renderFeed();
+}
+
+let EXPANDED = new Set();
+
+function renderFeed(){
+  if(!PROXY_READY) return;
+  const main = document.getElementById('main');
+  const list = ACTIVE_FILTER==='all' ? ALL_ITEMS : ALL_ITEMS.filter(i=>i.cat===ACTIVE_FILTER);
+  document.getElementById('countLabel').textContent =
+    ALL_ITEMS.length ? `${list.length} noticias · actualizado ${new Date().toLocaleTimeString('es-ES')}` : 'Sin datos todavía';
+
+  if(!list.length){
+    main.innerHTML = `<div class="empty">NO HAY SEÑAL EN ESTA CATEGORÍA<br>Prueba a actualizar o revisa otra sección.</div>`;
+    return;
+  }
+
+  main.innerHTML = list.map((item, i) => {
+    const key = item.cat + '|' + item.link;
+    const isOpen = EXPANDED.has(key);
+    const href = safeHref(item.link);
+    return `
+    <div class="card" data-cat="${escapeHtml(item.cat)}" data-idx="${i}" role="button" tabindex="0">
+      <div class="card-meta">
+        <span class="cat-tag" data-cat="${escapeHtml(item.cat)}">${escapeHtml(catLabel(item.cat))}</span>
+        <span>${escapeHtml(item.source)}</span>
+        <span>&middot;</span>
+        <span>${escapeHtml(timeAgo(item.date))}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-text">
+          <p class="card-title">${escapeHtml(item.title)}</p>
+          <p class="card-excerpt ${isOpen?'open':''}">${escapeHtml(isOpen ? item.excerptFull : item.excerptShort)}</p>
+          ${isOpen ? `<a class="source-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Leer en ${escapeHtml(item.source)} ↗</a>` : ''}
+        </div>
+        ${item.image ? `<img class="card-thumb" src="${escapeHtml(safeHref(item.image))}" loading="lazy" onerror="this.remove()">` : ''}
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  main.querySelectorAll('.card').forEach(card=>{
+    const toggle = ()=>{
+      const item = list[Number(card.dataset.idx)];
+      const key = item.cat + '|' + item.link;
+      if(EXPANDED.has(key)) EXPANDED.delete(key); else EXPANDED.add(key);
+      renderFeed();
+    };
+    card.addEventListener('click', toggle);
+    card.addEventListener('keydown', e=>{ if(e.key==='Enter') toggle(); });
+  });
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+let SOURCES_OPEN = false;
+let SOURCES_ERROR = '';
+
+function renderSourcesPanel(){
+  const root = document.getElementById('sourcesPanel');
+  if(!SOURCES_OPEN){ root.innerHTML = ''; return; }
+
+  const groups = CATEGORIES.map(cat=>{
+    const feeds = FEEDS.filter(f=>f.cat===cat.id);
+    const rows = feeds.length
+      ? feeds.map(f=>`
+        <div class="sources-row">
+          <div style="overflow:hidden;">
+            <div class="sources-row-name">${escapeHtml(f.name)}</div>
+            <span class="sources-row-url">${escapeHtml(f.url)}</span>
+          </div>
+          <button class="remove-btn" data-remove="${escapeHtml(f.id)}" title="Quitar">✕</button>
+        </div>`).join('')
+      : `<div class="sources-empty">Sin fuentes en esta categoría</div>`;
+    return `<div class="sources-group">
+      <div class="sources-group-label">${escapeHtml(cat.label)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="sources-panel">
+      <h3>Tus fuentes RSS</h3>
+      ${groups}
+      <div class="sources-form">
+        <input type="text" id="newFeedName" placeholder="Nombre (ej: Applesfera)">
+        <input type="url" id="newFeedUrl" placeholder="URL del RSS o de la web (https://...)">
+        <select id="newFeedCat">
+          ${CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+        </select>
+        <button id="addFeedBtn">Añadir fuente</button>
+        ${SOURCES_ERROR ? `<div class="sources-error">${SOURCES_ERROR}</div>` : ''}
+      </div>
+    </div>`;
+
+  root.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      FEEDS = FEEDS.filter(f=>f.id !== btn.dataset.remove);
+      saveFeeds();
+      SOURCES_ERROR = '';
+      renderSourcesPanel();
+      loadAll();
+    });
+  });
+
+  document.getElementById('addFeedBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('newFeedName').value.trim();
+    const inputUrl = document.getElementById('newFeedUrl').value.trim();
+    const cat = document.getElementById('newFeedCat').value;
+    if(!name || !inputUrl){ SOURCES_ERROR = 'Rellena nombre y URL.'; renderSourcesPanel(); return; }
+    if(!/^https?:\/\//i.test(inputUrl)){ SOURCES_ERROR = 'La URL debe empezar por http:// o https://'; renderSourcesPanel(); return; }
+
+    const btn = document.getElementById('addFeedBtn');
+    btn.disabled = true; btn.textContent = 'Comprobando…';
+    SOURCES_ERROR = '';
+
+    try{
+      let finalUrl = inputUrl;
+      let note = '';
+
+      const worksDirectly = await urlIsValidFeed(inputUrl);
+      if(!worksDirectly){
+        const discovered = await discoverFeedUrl(inputUrl);
+        if(discovered && await urlIsValidFeed(discovered)){
+          finalUrl = discovered;
+          note = ' (feed detectado automáticamente)';
+        } else {
+          SOURCES_ERROR = 'Esa URL no parece tener un RSS accesible. Prueba a buscar "' + name + ' RSS" y pega el enlace directo al feed.';
+          renderSourcesPanel();
+          return;
+        }
+      }
+
+      if(!/^https?:\/\//i.test(finalUrl)){
+        SOURCES_ERROR = 'El feed detectado no usa http/https, no se puede añadir.';
+        renderSourcesPanel();
+        return;
+      }
+
+      FEEDS.push({ id:'u'+Date.now(), cat, name, url: finalUrl });
+      saveFeeds();
+      SOURCES_ERROR = '';
+      renderSourcesPanel();
+      loadAll();
+    } catch(err){
+      SOURCES_ERROR = 'No se pudo comprobar esa URL. Revisa tu conexión o el Worker.';
+      renderSourcesPanel();
+    }
+  });
+}
+
+async function urlIsValidFeed(url){
+  try{
+    const res = await fetchProxy(url);
+    if(!res.ok) return false;
+    const text = await res.text();
+    const doc = new DOMParser().parseFromString(text, 'text/xml');
+    if(doc.querySelector('parsererror')) return false;
+    const isAtom = doc.querySelector('feed') !== null;
+    const count = isAtom ? doc.querySelectorAll('entry').length : doc.querySelectorAll('item').length;
+    return count > 0;
+  }catch(e){ return false; }
+}
+
+async function discoverFeedUrl(pageUrl){
+  try{
+    const res = await fetchProxy(pageUrl);
+    if(!res.ok) return null;
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const link = doc.querySelector(
+      'link[type="application/rss+xml"], link[type="application/atom+xml"], link[type="application/feed+json"]'
+    );
+    if(!link) return null;
+    const href = link.getAttribute('href');
+    if(!href) return null;
+    return new URL(href, pageUrl).toString();
+  }catch(e){ return null; }
+}
+
+document.getElementById('sourcesBtn').addEventListener('click', ()=>{
+  SOURCES_OPEN = !SOURCES_OPEN;
+  renderSourcesPanel();
+});
+
+document.getElementById('footer').innerHTML = PROXY_READY
+  ? `SEÑAL lee RSS en tiempo real a través de tu propio proxy. Tus fuentes se guardan en este navegador (no se sincronizan entre dispositivos).<br>
+     Fuentes activas: ${FEEDS.map(f=>escapeHtml(f.name)).join(', ') || 'ninguna'}.<br>
+     <button id="legalBtn" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer;">Aviso legal · Privacidad · Cookies</button> &middot;
+     <span style="opacity:0.6">build v7</span>`
+  : `Consulta rss-proxy-worker.js para poner en marcha tu proxy gratuito y activar la lectura en vivo.`;
+
+const LEGAL_TITULAR = 'Javier Rubinos Dacuña';
+const LEGAL_CONTACTO = 'J.rubinos@hotmail.com';
+const LEGAL_FECHA = '19 de julio de 2026';
+
+function closeLegal(){
+  document.getElementById('legalRoot').innerHTML = '';
+}
+
+function openLegal(){
+  const root = document.getElementById('legalRoot');
+  root.innerHTML = `
+    <div class="legal-overlay" id="legalOverlay">
+      <div class="legal-panel">
+        <div class="legal-top">
+          <h2>Aviso legal, privacidad y cookies</h2>
+          <button class="legal-close" id="legalCloseBtn">Cerrar ✕</button>
+        </div>
+        <div class="legal-body">
+
+          <h3>1. Aviso legal (LSSI-CE)</h3>
+          <p>En cumplimiento del artículo 10 de la Ley 34/2002 (LSSI-CE):</p>
+          <ul>
+            <li><b>Titular:</b> ${escapeHtml(LEGAL_TITULAR)}</li>
+            <li><b>Contacto:</b> ${escapeHtml(LEGAL_CONTACTO)}</li>
+            <li><b>Finalidad:</b> agregador personal de noticias tecnológicas mediante feeds RSS de terceros, sin ánimo de lucro ni finalidad comercial.</li>
+            <li><b>Alojamiento:</b> GitHub Pages (GitHub, Inc. / Microsoft) y Cloudflare Workers (Cloudflare, Inc.).</li>
+          </ul>
+
+          <h3>2. Privacidad (RGPD / LOPDGDD)</h3>
+          <h4>Responsable del tratamiento</h4>
+          <p>${escapeHtml(LEGAL_TITULAR)} — ${escapeHtml(LEGAL_CONTACTO)}</p>
+
+          <h4>Qué datos se tratan</h4>
+          <p>SEÑAL no tiene registro de usuarios, formularios, analítica ni cookies de seguimiento. No se recopilan datos personales de forma directa. Por transparencia:</p>
+          <ul>
+            <li><b>Alojamiento (GitHub Pages):</b> procesa técnicamente tu IP para entregar los archivos, como cualquier servidor web, conforme a la política de privacidad de GitHub.</li>
+            <li><b>Proxy de noticias (Cloudflare Workers):</b> cuando pides un feed, la petición pasa por un Worker que actúa de intermediario. Cloudflare procesa tu IP de forma transitoria para enrutarla, conforme a su propia política. Esto además mejora tu privacidad: los medios de noticias no ven tu IP directamente.</li>
+            <li><b>Preferencias locales:</b> tus fuentes RSS se guardan solo en el almacenamiento local de tu navegador, sin enviarse a ningún servidor propio.</li>
+          </ul>
+
+          <h4>Base jurídica</h4>
+          <p>Interés legítimo de prestar el servicio solicitado (art. 6.1.f RGPD), limitado a lo estrictamente necesario.</p>
+
+          <h4>Tus derechos</h4>
+          <p>Puedes ejercer acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ${escapeHtml(LEGAL_CONTACTO)}, o reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">AEPD</a>.</p>
+
+          <h4>Transferencias internacionales</h4>
+          <p>GitHub y Cloudflare pueden procesar datos técnicos fuera del EEE, acogidos a mecanismos reconocidos por la Comisión Europea (Marco de Privacidad de Datos UE-EE.UU. o cláusulas contractuales tipo).</p>
+
+          <h3>3. Cookies y almacenamiento local</h3>
+          <p>SEÑAL <b>no usa cookies</b>. Usa <code>localStorage</code> únicamente para recordar en este dispositivo qué fuentes RSS has añadido o quitado.</p>
+          <ul>
+            <li>No se usa para rastrearte ni con fines publicitarios, ni se comparte con nadie.</li>
+            <li>Los datos no salen de tu navegador.</li>
+            <li>Puedes borrarlo desde los ajustes de tu navegador ("borrar datos de sitio").</li>
+          </ul>
+          <p>Por su naturaleza estrictamente funcional, este uso está exento del deber de consentimiento previo conforme al art. 22.2 LSSI-CE. Si en el futuro se añadiera analítica o publicidad, este aviso debería actualizarse con un banner de consentimiento previo.</p>
+
+          <h3>4. Contenido de terceros y propiedad intelectual</h3>
+          <p>SEÑAL muestra titulares y resúmenes cortos de feeds RSS públicos, enlazando siempre a la fuente original, sin reproducir el artículo completo. Los derechos de cada noticia pertenecen a su medio de origen; SEÑAL actúa como mero agregador/enlazador.</p>
+
+          <div class="legal-note">Última actualización: ${escapeHtml(LEGAL_FECHA)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('legalCloseBtn').addEventListener('click', closeLegal);
+  document.getElementById('legalOverlay').addEventListener('click', e=>{
+    if(e.target.id === 'legalOverlay') closeLegal();
+  });
+}
+
+document.getElementById('legalBtn').addEventListener('click', openLegal);
+
+renderFilters();
+loadAll();
+</script>
+</body>
+</html>
