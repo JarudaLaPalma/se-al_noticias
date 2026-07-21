@@ -1,6 +1,0 @@
-{
-  "name": "Señal - Noticias Tech",
-  "description": "Agregador RSS personal y PWA con proxy para evitar CORS, soporte modo oscuro, gestos y gestión de fuentes.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
