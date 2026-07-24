@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SEÑAL">
+<meta name="theme-color" content="#EDEEE7" id="themeColorMeta">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src https: data:; connect-src 'self' https://wispy-lake-2968.d2v5nghmw6.workers.dev; base-uri 'none'; form-action 'none'; frame-ancestors 'none';">
+<title>SEÑAL — Wire Tech</title>
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#EDEEE7;
+    --paper-raised:#F7F7F2;
+    --ink:#1B1D1B;
+    --ink-soft:#5B5F58;
+    --line:#D3D4CA;
+    --ok:#2C5B4B;
+    --err:#A8351F;
+    --shadow-soft: rgba(27,29,27,0.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --paper:#171813;
+      --paper-raised:#212219;
+      --ink:#EDEEE7;
+      --ink-soft:#9C9E92;
+      --line:#3A3B32;
+      --ok:#63AC90;
+      --err:#E37A62;
+      --shadow-soft: rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --paper:#171813;
+    --paper-raised:#212219;
+    --ink:#EDEEE7;
+    --ink-soft:#9C9E92;
+    --line:#3A3B32;
+    --ok:#63AC90;
+    --err:#E37A62;
+    --shadow-soft: rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+    padding-bottom:48px;
+  }
+  a{color:inherit;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    border-bottom:1px solid var(--ink);
+    padding:calc(env(safe-area-inset-top, 0px) + 14px) 16px 10px;
+  }
+  .brand-row{
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-family:'Arial Narrow', Arial, sans-serif;
+  }
+  .brand{
+    font-size:30px; font-weight:800; letter-spacing:0.5px;
+    text-transform:uppercase; line-height:0.9;
+  }
+  .brand small{
+    display:block; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:9.5px; font-weight:500; letter-spacing:1.5px;
+    color:var(--ink-soft); text-transform:uppercase; margin-top:3px;
+  }
+  .clock{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:11px; color:var(--ink-soft); text-align:right;
+    line-height:1.5;
+  }
+  .clock b{color:var(--ink); font-weight:600;}
+
+  /* signal status strip — signature element */
+  .signal-strip{
+    margin-top:12px; display:flex; gap:0; border:1px solid var(--ink);
+    background:var(--paper-raised); overflow:hidden;
+  }
+  .signal-item{
+    flex:1; padding:6px 8px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:9.5px; border-right:1px solid var(--line);
+    display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden;
+  }
+  .signal-item:last-child{border-right:none;}
+  .dot{width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--line);}
+  .dot.ok{background:var(--ok);}
+  .dot.err{background:var(--err);}
+  .dot.pending{background:#C9A227; animation:pulse 1s infinite;}
+  @keyframes pulse{50%{opacity:0.3;}}
+  .signal-item span{overflow:hidden; text-overflow:ellipsis;}
+
+  /* ---------- FILTERS ---------- */
+  .filters{
+    display:flex; gap:8px; padding:12px 16px; overflow-x:auto;
+    scrollbar-width:none; background:var(--paper);
+    position:sticky; top:0; z-index:19;
+  }
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px;
+    font-weight:600; letter-spacing:0.3px; text-transform:uppercase;
+    padding:7px 12px; border:1px solid var(--ink); background:var(--paper-raised);
+    cursor:pointer; user-select:none; transition:all .15s ease;
+  }
+  .chip.active{background:var(--ink); color:var(--paper);}
+  .chip.chip-saved{display:flex; align-items:center; gap:4px;}
+
+  /* ---------- REFRESH BAR ---------- */
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+    padding:0 16px 10px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:10.5px; color:var(--ink-soft);
+  }
+  .toolbar > div{display:flex; gap:6px; flex-wrap:wrap; margin-left:auto;}
+  .toolbar #countLabel{flex-basis:100%; order:-1;}
+  @media (min-width:420px){ .toolbar #countLabel{flex-basis:auto; order:0;} }
+  .refresh-btn{padding:5px 8px;}
+  .refresh-btn{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:600;
+    background:none; border:1px solid var(--ink); padding:5px 10px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:0.3px; display:flex; align-items:center; gap:6px;
+  }
+  .refresh-btn:active{background:var(--ink); color:var(--paper);}
+  .refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Interruptor de tema (claro/oscuro/automático) */
+  .theme-switch{
+    position:relative; width:50px; height:26px; padding:0; flex-shrink:0;
+    border:1px solid var(--line); border-radius:13px; background:var(--paper);
+    cursor:pointer; box-shadow:inset 0 1px 2px var(--shadow-soft);
+  }
+  .theme-switch-thumb{
+    position:absolute; top:1px; left:1px; width:22px; height:22px; border-radius:50%;
+    background:var(--paper-raised); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; color:var(--ink-soft);
+    transition:left .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
+  }
+  .theme-switch[data-dark="true"]{background:var(--ink);}
+  .theme-switch[data-dark="true"] .theme-switch-thumb{
+    left:calc(100% - 24px); background:var(--paper); color:var(--ink); border-color:var(--paper);
+  }
+  .theme-switch-thumb svg{overflow:visible;}
+
+  /* ---------- FEED ---------- */
+  main{padding:4px 16px 24px;}
+  .card{
+    display:block; background:var(--paper-raised); border:1px solid var(--line);
+    border-left:4px solid var(--ink); margin-bottom:12px; padding:12px 14px;
+    text-decoration:none; color:var(--ink); position:relative;
+  }
+  .card-wrap{position:relative; margin-bottom:12px; overflow:hidden; border-radius:1px;}
+  .card-wrap .card{
+    margin-bottom:0; position:relative; z-index:2; background:var(--paper-raised);
+    touch-action:pan-y; -webkit-user-select:none; user-select:none;
+  }
+  .card-wrap .card *{-webkit-touch-callout:none;}
+  .card-wrap .card img{-webkit-user-drag:none; user-drag:none; pointer-events:none;}
+  /* Capa única de swipe: un solo color a la vez, sin "costura" entre dos mitades */
+  .swipe-layer{
+    position:absolute; inset:0; z-index:1; display:flex; align-items:center;
+    font-family:ui-monospace, monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.4px; color:#fff; opacity:0;
+    padding:0 20px;
+  }
+  .swipe-layer.save{background:var(--ok); justify-content:flex-end;}
+  .swipe-layer.discard{background:var(--err); justify-content:flex-start;}
+  .swipe-layer .swipe-action{display:flex; align-items:center; gap:6px;}
+
+  .card-meta{
+    display:flex; align-items:center; gap:8px; margin-bottom:7px;
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.4px; color:var(--ink-soft);
+  }
+  .cat-tag{
+    padding:2px 6px; font-weight:700; color:#fff; font-size:9px;
+  }
+  .card-actions{
+    display:flex; gap:6px; margin-left:auto; flex-shrink:0;
+  }
+  .icon-btn{
+    width:26px; height:26px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink-soft); font-size:12px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; padding:0; line-height:1; flex-shrink:0;
+  }
+  .icon-btn.save-btn.active{background:var(--ok); border-color:var(--ok); color:#fff;}
+  .icon-btn.discard-btn:active{background:var(--err); border-color:var(--err); color:#fff;}
+
+  .card-body{display:flex; gap:10px; align-items:flex-start;}
+  .card-text{flex:1; min-width:0;}
+  .card-title{
+    font-size:16.5px; font-weight:600; line-height:1.28; margin:0 0 6px;
+  }
+  .card-thumb{
+    width:74px; height:74px; object-fit:cover; flex-shrink:0;
+    background:var(--line); filter:grayscale(15%);
+  }
+
+  .source-link{
+    display:inline-block; margin-top:2px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size:11px; font-weight:600; text-decoration:underline;
+    color:var(--ink) !important;
+  }
+
+  .empty, .loading{
+    text-align:center; padding:60px 20px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+    color:var(--ink-soft); font-size:12.5px; line-height:1.7;
+  }
+  .loading .dot{display:inline-block; animation:pulse 1s infinite; margin:0 1px;}
+
+  /* ---------- SOURCES PANEL ---------- */
+  .sources-panel{
+    margin:0 16px 14px; border:1px solid var(--ink); background:var(--paper-raised);
+    padding:14px;
+  }
+  .sources-panel h3{
+    margin:0 0 10px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.4px;
+  }
+  .sources-group{margin-bottom:12px;}
+  .sources-group-label{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:0.4px; margin-bottom:5px;
+  }
+  .sources-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:6px 8px; background:var(--paper); border:1px solid var(--line); margin-bottom:5px;
+    font-size:12.5px;
+  }
+  .sources-row-name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sources-row-url{
+    display:block; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px;
+    color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .remove-btn{
+    flex-shrink:0; background:none; border:1px solid var(--err); color:var(--err);
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:700;
+    width:22px; height:22px; cursor:pointer; line-height:1;
+  }
+  .sources-empty{font-size:12px; color:var(--ink-soft); font-style:italic; margin-bottom:8px;}
+  .sources-form{
+    display:flex; flex-direction:column; gap:6px; margin-top:10px;
+    padding-top:12px; border-top:1px dashed var(--line);
+  }
+  .sources-form input, .sources-form select{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:12.5px; padding:7px 8px;
+    border:1px solid var(--ink); background:var(--paper); color:var(--ink);
+  }
+  .sources-form button{
+    font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.3px; padding:8px; cursor:pointer;
+    background:var(--ink); color:var(--paper); border:none;
+  }
+  .sources-error{font-size:11.5px; color:var(--err); font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace;}
+  .swatches{display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 4px;}
+  .swatch{
+    width:24px; height:24px; border:2px solid transparent; cursor:pointer; padding:0;
+  }
+  .swatch.selected{border-color:var(--ink);}
+  .cat-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:6px 8px; background:var(--paper); border:1px solid var(--line); margin-bottom:5px;
+    font-size:12.5px;
+  }
+  .cat-row-swatch{width:12px; height:12px; flex-shrink:0;}
+  .cat-row-name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:8px;}
+
+  /* ---------- LEGAL MODAL ---------- */
+  .legal-overlay{
+    position:fixed; inset:0; background:rgba(27,29,27,0.55); z-index:60;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .legal-panel{
+    background:var(--paper); width:100%; max-width:640px; max-height:88vh;
+    overflow-y:auto; border-top:1px solid var(--ink); padding-bottom:24px;
+  }
+  .legal-top{
+    position:sticky; top:0; background:var(--paper); border-bottom:1px solid var(--line);
+    padding:12px 16px; display:flex; align-items:center; justify-content:space-between; z-index:2;
+  }
+  .legal-top h2{margin:0; font-size:15px;}
+  .legal-close{
+    font-family:ui-monospace, monospace; font-size:11px; font-weight:600;
+    background:none; border:1px solid var(--ink); padding:5px 10px; cursor:pointer;
+  }
+  .legal-body{padding:6px 18px 4px; font-size:13.5px; line-height:1.6;}
+  .legal-body h3{font-size:14px; margin:20px 0 4px; border-bottom:1px solid var(--line); padding-bottom:4px;}
+  .legal-body h4{font-size:12.5px; margin:14px 0 3px;}
+  .legal-body p, .legal-body li{margin:0 0 8px;}
+  .legal-body ul{padding-left:18px;}
+  .legal-note{
+    background:var(--paper-raised); border:1px solid var(--line); padding:8px 10px;
+    font-family:ui-monospace, monospace; font-size:11px; color:var(--ink-soft); margin:6px 0 16px;
+  }
+
+  footer{
+    padding:18px 16px 30px; font-family:ui-monospace, 'SF Mono', 'Cascadia Code', 'Roboto Mono', monospace; font-size:9.5px;
+    color:var(--ink-soft); border-top:1px solid var(--line); margin-top:10px; line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">SEÑAL<small>Wire de tecnología &middot; ES</small></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+  <div class="signal-strip" id="signalStrip"></div>
+</header>
+
+<div class="filters" id="filters"></div>
+
+<div class="toolbar">
+  <span id="countLabel">Cargando fuentes…</span>
+  <div style="display:flex; gap:8px;">
+    <button class="theme-switch" id="themeBtn" title="Cambiar tema"><span class="theme-switch-thumb"></span></button>
+    <button class="refresh-btn" id="categoriesBtn">Categorías</button>
+    <button class="refresh-btn" id="sourcesBtn">Fuentes</button>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      Actualizar
+    </button>
+  </div>
+</div>
+
+<div id="categoriesPanel"></div>
+<div id="sourcesPanel"></div>
+
+<main id="main">
+  <div class="loading">SINTONIZANDO SEÑALES<br><span class="dot"></span><span class="dot" style="animation-delay:.15s"></span><span class="dot" style="animation-delay:.3s"></span></div>
+</main>
+
+<footer id="footer"></footer>
+
+<div id="legalRoot"></div>
+
+<script>
+// ============================================================
+// CONFIGURA AQUÍ TU PROXY PROPIO (ver rss-proxy-worker.js)
+// Sustituye esta URL por la que te dé Cloudflare Workers al desplegar.
+// ============================================================
+const PROXY_BASE = 'https://wispy-lake-2968.d2v5nghmw6.workers.dev/?url=';
+
+// Debe coincidir EXACTAMENTE con SHARED_SECRET en tu rss-proxy-worker.js.
+// Sin esto, tu Worker rechaza la petición con 403.
+const PROXY_KEY = 'e25bf4aabf7eac8f7a0678d7e147db3863f3b96488a54c68';
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+function safeHref(url){
+  try{
+    const u = new URL(url);
+    if(u.protocol === 'http:' || u.protocol === 'https:') return u.toString();
+  }catch(e){}
+  return '#';
+}
+
+const BASE_CATEGORIES = [
+  { id:'gadgets',    label:'Gadgets y hardware',  color:'#A8551F' },
+  { id:'seguridad',  label:'Ciberseguridad',      color:'#2C5B4B' },
+  { id:'movil',      label:'Tecnología móvil',    color:'#31488F' },
+  { id:'juegos',     label:'Videojuegos',         color:'#8B3560' },
+];
+
+const CATEGORIES_KEY = 'senal_categories_v1';
+const SWATCHES = ['#A8551F','#2C5B4B','#31488F','#8B3560','#6B7A3F','#7A4B8B','#1F6E78','#8B4A1F','#4A5568','#B4485F'];
+
+function loadCustomCategories(){
+  try{
+    const raw = localStorage.getItem(CATEGORIES_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed)) return parsed; }
+  }catch(e){}
+  return [];
+}
+function saveCustomCategories(){
+  try{ localStorage.setItem(CATEGORIES_KEY, JSON.stringify(CUSTOM_CATEGORIES)); }catch(e){}
+}
+let CUSTOM_CATEGORIES = loadCustomCategories();
+function getAllCategories(){ return [...BASE_CATEGORIES, ...CUSTOM_CATEGORIES]; }
+function colorForCat(id){ return getAllCategories().find(c=>c.id===id)?.color || '#5B5F58'; }
+
+const DEFAULT_FEEDS = [
+  {id:'d1', cat:'gadgets',   name:'Xataka',                 url:'https://feeds.weblogssl.com/xataka2'},
+  {id:'d2', cat:'gadgets',   name:'Genbeta',                url:'https://feeds.weblogssl.com/genbeta'},
+  {id:'d3', cat:'seguridad', name:'Hispasec · una-al-día',  url:'https://unaaldia.hispasec.com/feeds/posts/default'},
+  {id:'d4', cat:'seguridad', name:'WeLiveSecurity ES',      url:'https://www.welivesecurity.com/es/feed/'},
+  {id:'d5', cat:'movil',     name:'Xataka Android',         url:'https://feeds.weblogssl.com/xatakandroid'},
+  {id:'d6', cat:'movil',     name:'Applesfera',             url:'https://feeds.weblogssl.com/applesfera'},
+  {id:'d7', cat:'juegos',    name:'Vida Extra',             url:'https://feeds.weblogssl.com/vidaextra'},
+  {id:'d8', cat:'juegos',    name:'Vandal · Hardware',      url:'https://vandal.elespanol.com/rss/noticias/hardware'},
+];
+
+const FEEDS_KEY = 'senal_feeds_v1';
+
+function loadFeeds(){
+  try{
+    const raw = localStorage.getItem(FEEDS_KEY);
+    if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length) return parsed; }
+  }catch(e){}
+  return DEFAULT_FEEDS.slice();
+}
+function saveFeeds(){
+  try{ localStorage.setItem(FEEDS_KEY, JSON.stringify(FEEDS)); }catch(e){}
+}
+
+let FEEDS = loadFeeds();
+let ALL_ITEMS = [];
+let ACTIVE_FILTER = 'all';
+const PROXY_READY = !PROXY_BASE.includes('TU-WORKER');
+
+function catLabel(id){ return getAllCategories().find(c=>c.id===id)?.label || id; }
+
+// Icono de marcador (ribbon), reutilizado en el chip, el botón de guardar y el gesto de swipe.
+function bookmarkIcon(size){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-2px;flex-shrink:0;"><path d="M6 2a1 1 0 0 0-1 1v18l7-4.2 7 4.2V3a1 1 0 0 0-1-1H6z"/></svg>`;
+}
+
+// ---------- Guardados / descartados (persistentes en este dispositivo) ----------
+const SAVED_KEY = 'senal_saved_v1';
+const DISMISSED_KEY = 'senal_dismissed_v1';
+
+function loadSaved(){
+  try{ const raw = localStorage.getItem(SAVED_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return [];
+}
+function saveSaved(){ try{ localStorage.setItem(SAVED_KEY, JSON.stringify(SAVED)); }catch(e){} }
+let SAVED = loadSaved();
+
+function loadDismissed(){
+  try{ const raw = localStorage.getItem(DISMISSED_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return [];
+}
+function saveDismissed(){ try{ localStorage.setItem(DISMISSED_KEY, JSON.stringify([...DISMISSED])); }catch(e){} }
+let DISMISSED = new Set(loadDismissed());
+
+function isSaved(link){ return SAVED.some(s=>s.link===link); }
+function toggleSaved(item){
+  if(isSaved(item.link)){
+    SAVED = SAVED.filter(s=>s.link!==item.link);
+  } else {
+    SAVED.unshift(item);
+  }
+  saveSaved();
+}
+function dismissItem(link){
+  DISMISSED.add(link);
+  saveDismissed();
+}
+
+// ---------- Tema (claro/oscuro/automático) ----------
+const THEME_KEY = 'senal_theme_v1';
+let THEME = (()=>{ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } })();
+
+function applyTheme(){
+  const html = document.documentElement;
+  if(THEME === 'auto') html.removeAttribute('data-theme');
+  else html.setAttribute('data-theme', THEME);
+
+  const isDark = THEME==='dark' || (THEME==='auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const btn = document.getElementById('themeBtn');
+  if(btn){
+    const titles = { auto:'Tema: automático (sigue al sistema) — pulsa para forzar oscuro', dark:'Tema: oscuro forzado — pulsa para forzar claro', light:'Tema: claro forzado — pulsa para volver a automático' };
+    btn.title = titles[THEME];
+    btn.setAttribute('aria-label', titles[THEME]);
+    btn.setAttribute('role', 'switch');
+    btn.setAttribute('aria-checked', String(isDark));
+    btn.dataset.dark = String(isDark);
+
+    const star = THEME === 'auto'
+      ? `<path d="M18.2 1.6l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6.6-1.4z" fill="currentColor" stroke="none"/>`
+      : '';
+    const thumb = btn.querySelector('.theme-switch-thumb');
+    thumb.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="13" r="4.3"/>
+      <path d="M11 5.5v-2M11 22.5v-2M4.5 13h-2M6.9 7.9 5.5 6.5M6.9 18.1l-1.4 1.4M17.1 7.9l1.4-1.4"/>
+      ${star}
+    </svg>`;
+  }
+
+  const meta = document.getElementById('themeColorMeta');
+  if(meta) meta.setAttribute('content', isDark ? '#171813' : '#EDEEE7');
+}
+function cycleTheme(){
+  THEME = THEME==='auto' ? 'dark' : (THEME==='dark' ? 'light' : 'auto');
+  try{ localStorage.setItem(THEME_KEY, THEME); }catch(e){}
+  applyTheme();
+}
+applyTheme();
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ if(THEME==='auto') applyTheme(); });
+}
+document.getElementById('themeBtn').addEventListener('click', cycleTheme);
+
+function updateClock(){
+  const d = new Date();
+  document.getElementById('clock').innerHTML =
+    `<b>${d.toLocaleDateString('es-ES',{day:'2-digit',month:'short'}).toUpperCase()}</b><br>${d.toLocaleTimeString('es-ES')}`;
+}
+updateClock(); setInterval(updateClock, 1000);
+
+function renderFilters(){
+  const wrap = document.getElementById('filters');
+  const cats = getAllCategories();
+  const chips = [{id:'all', label:'Todo', raw:false}, ...cats.map(c=>({...c, raw:false})), {id:'guardados', label:'Guardados', raw:true}];
+  wrap.innerHTML = chips.map(c => {
+    const active = c.id===ACTIVE_FILTER;
+    const color = (c.id!=='all' && c.id!=='guardados') ? colorForCat(c.id) : null;
+    const style = active && color ? `style="background:${color};border-color:${color};color:#fff;"` : '';
+    const content = c.raw ? (bookmarkIcon(11) + ' ' + escapeHtml(c.label)) : escapeHtml(c.label);
+    return `<button class="chip ${c.id==='guardados'?'chip-saved':''} ${active?'active':''}" data-cat="${escapeHtml(c.id)}" ${style}>${content}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      ACTIVE_FILTER = btn.dataset.cat;
+      renderFilters();
+      renderFeed();
+    });
+  });
+}
+
+function timeAgo(dateStr){
+  const diff = (Date.now() - new Date(dateStr).getTime())/1000;
+  if(diff < 60) return 'ahora';
+  if(diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+  return `hace ${Math.floor(diff/86400)} d`;
+}
+
+function stripHtml(html){
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function extractImageFromHtml(html){
+  const m = (html||'').match(/<img[^>]+src="([^">]+)"/);
+  return m ? m[1] : null;
+}
+
+function text(node, selector){
+  const el = node.querySelector(selector);
+  return el ? el.textContent.trim() : '';
+}
+
+function parseFeedXml(xmlText, catId, feedName){
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  if(doc.querySelector('parsererror')) throw new Error('parse error');
+
+  const isAtom = doc.querySelector('feed') !== null;
+  const nodes = isAtom ? [...doc.querySelectorAll('entry')] : [...doc.querySelectorAll('item')];
+  if(!nodes.length) throw new Error('empty feed');
+
+  return nodes.slice(0,12).map(node=>{
+    let link = '';
+    if(isAtom){
+      const linkEl = node.querySelector('link[href]');
+      link = linkEl ? linkEl.getAttribute('href') : '';
+    } else {
+      link = text(node,'link');
+    }
+    const title = text(node,'title') || '(sin título)';
+    const dateStr = text(node,'pubDate') || text(node,'published') || text(node,'updated') || text(node,'date') || new Date().toISOString();
+    const rawDesc = text(node,'description') || text(node,'summary') || text(node,'content') || '';
+
+    let image = null;
+    const media = node.querySelector('thumbnail, [url]');
+    if(media && media.getAttribute('url')) image = media.getAttribute('url');
+    const enclosure = node.querySelector('enclosure[url]');
+    if(!image && enclosure && (enclosure.getAttribute('type')||'').startsWith('image')) image = enclosure.getAttribute('url');
+    if(!image) image = extractImageFromHtml(rawDesc);
+
+    return {
+      cat: catId,
+      source: feedName,
+      title: stripHtml(title),
+      link,
+      date: dateStr,
+      excerptShort: stripHtml(rawDesc).slice(0,160),
+      image
+    };
+  });
+}
+
+function fetchProxy(targetUrl){
+  return fetch(PROXY_BASE + encodeURIComponent(targetUrl), {
+    cache:'no-store',
+    headers: { 'X-Senal-Key': PROXY_KEY }
+  });
+}
+
+async function fetchFeed(feed){
+  const res = await fetchProxy(feed.url);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const xmlText = await res.text();
+  return parseFeedXml(xmlText, feed.cat, feed.name);
+}
+
+function setSignal(key, status){
+  const el = document.getElementById('sig-'+key);
+  if(!el) return;
+  const dot = el.querySelector('.dot');
+  dot.classList.remove('ok','err','pending');
+  dot.classList.add(status);
+}
+
+function renderSignalStrip(){
+  const wrap = document.getElementById('signalStrip');
+  wrap.innerHTML = FEEDS.map(f =>
+    `<div class="signal-item" id="sig-${escapeHtml(f.id)}"><span class="dot pending"></span><span>${escapeHtml(f.name)}</span></div>`
+  ).join('');
+}
+
+function renderSetupScreen(){
+  document.getElementById('main').innerHTML = `
+    <div class="empty" style="text-align:left; padding:24px 18px;">
+      <p style="font-weight:600; color:var(--ink); margin-bottom:10px;">FALTA CONFIGURAR TU PROXY</p>
+      Esta app necesita un proxy propio para leer RSS sin depender de servicios de terceros inestables.<br><br>
+      1. Abre <b>rss-proxy-worker.js</b> (el archivo que te di junto a esta app).<br>
+      2. Sigue las instrucciones del comentario inicial para desplegarlo gratis en Cloudflare Workers (2-3 min).<br>
+      3. Copia la URL que te den (tipo <i>https://tu-worker.workers.dev</i>).<br>
+      4. En este archivo HTML, edita la constante <b>PROXY_BASE</b> al principio del &lt;script&gt; y pega tu URL, dejando el final <b>/?url=</b>.<br>
+      5. Guarda y recarga.
+    </div>`;
+  document.getElementById('countLabel').textContent = 'Proxy no configurado';
+}
+
+let LOAD_GENERATION = 0;
+
+// ---------- Caché local de noticias (para mostrar algo al abrir la app sin pedir red) ----------
+// Por ahora la app NUNCA pide red por su cuenta: al abrir, si hay algo en esta caché se
+// muestra tal cual (aunque tenga horas), y solo se refresca de verdad cuando pulsas
+// "Actualizar" (o al añadir/quitar una fuente).
+const ITEMS_CACHE_KEY = 'senal_items_cache_v1';
+
+function feedsSignature(){ return FEEDS.map(f=>f.id+':'+f.url).sort().join('|'); }
+
+function readItemsCache(){
+  try{
+    const raw = localStorage.getItem(ITEMS_CACHE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.items)) return null;
+    return parsed;
+  }catch(e){ return null; }
+}
+function writeItemsCache(){
+  try{
+    localStorage.setItem(ITEMS_CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      signature: feedsSignature(),
+      items: ALL_ITEMS,
+    }));
+  }catch(e){}
+}
+
+async function loadAll(){
+  if(!PROXY_READY){ renderSetupScreen(); return; }
+
+  if(!FEEDS.length){
+    document.getElementById('signalStrip').innerHTML = '';
+    document.getElementById('main').innerHTML = `<div class="empty">NO TIENES NINGUNA FUENTE AÑADIDA<br>Pulsa "Fuentes" para añadir tu primer RSS.</div>`;
+    document.getElementById('countLabel').textContent = 'Sin fuentes';
+    return;
+  }
+
+  const myGen = ++LOAD_GENERATION;
+  document.getElementById('refreshBtn').classList.add('spinning');
+  document.getElementById('countLabel').textContent = 'Cargando fuentes…';
+  renderSignalStrip();
+
+  const jobs = FEEDS.map(f =>
+    fetchFeed(f)
+      .then(items=>{ if(myGen===LOAD_GENERATION) setSignal(f.id,'ok'); return items; })
+      .catch(()=>{ if(myGen===LOAD_GENERATION) setSignal(f.id,'err'); return []; })
+  );
+
+  const results = await Promise.all(jobs);
+  if(myGen !== LOAD_GENERATION) return; // una carga más reciente ya está en curso: descartamos esta
+
+  ALL_ITEMS = results.flat().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  writeItemsCache();
+  document.getElementById('refreshBtn').classList.remove('spinning');
+  renderFeed();
+}
+
+// ---------- Carga inicial: por ahora NUNCA pide red sola. Solo pinta lo que ya
+// hubiera en caché local (si lo hay) y espera a que el usuario pulse "Actualizar".
+// Esto es temporal, para poder probar el botón de refrescar de forma aislada
+// mientras se ajusta el Worker.
+function initFeed(){
+  if(!PROXY_READY){ renderSetupScreen(); return; }
+
+  if(!FEEDS.length){
+    document.getElementById('signalStrip').innerHTML = '';
+    document.getElementById('main').innerHTML = `<div class="empty">NO TIENES NINGUNA FUENTE AÑADIDA<br>Pulsa "Fuentes" para añadir tu primer RSS.</div>`;
+    document.getElementById('countLabel').textContent = 'Sin fuentes';
+    return;
+  }
+
+  const cached = readItemsCache();
+  renderSignalStrip();
+
+  if(cached && cached.signature === feedsSignature() && cached.items.length){
+    ALL_ITEMS = cached.items;
+    FEEDS.forEach(f => setSignal(f.id, 'ok'));
+    renderFeed();
+    const mins = Math.max(0, Math.round((Date.now() - cached.ts)/60000));
+    const when = mins < 1 ? 'hace un momento' : `hace ${mins} min`;
+    document.getElementById('countLabel').textContent =
+      `${ALL_ITEMS.filter(i=>!DISMISSED.has(i.link)).length} noticias · última carga ${when} · pulsa Actualizar para refrescar`;
+  } else {
+    FEEDS.forEach(f => setSignal(f.id, 'pending'));
+    document.getElementById('main').innerHTML = `<div class="empty">TODAVÍA NO HAS CARGADO NOTICIAS<br>Pulsa "Actualizar" arriba para traerlas.</div>`;
+    document.getElementById('countLabel').textContent = 'Pulsa "Actualizar" para cargar noticias';
+  }
+}
+
+function getVisibleList(){
+  if(ACTIVE_FILTER === 'guardados') return SAVED;
+  const base = ALL_ITEMS.filter(i => !DISMISSED.has(i.link));
+  return ACTIVE_FILTER==='all' ? base : base.filter(i=>i.cat===ACTIVE_FILTER);
+}
+
+function renderFeed(){
+  if(!PROXY_READY) return;
+  const main = document.getElementById('main');
+  const list = getVisibleList();
+
+  if(ACTIVE_FILTER === 'guardados'){
+    document.getElementById('countLabel').textContent = `${list.length} guardadas`;
+  } else {
+    document.getElementById('countLabel').textContent =
+      ALL_ITEMS.length ? `${list.length} noticias · actualizado ${new Date().toLocaleTimeString('es-ES')}` : 'Sin datos todavía';
+  }
+
+  if(!list.length){
+    main.innerHTML = ACTIVE_FILTER === 'guardados'
+      ? `<div class="empty">AÚN NO HAS GUARDADO NINGUNA NOTICIA<br>Desliza una tarjeta hacia la derecha, o pulsa el icono de marcador.</div>`
+      : `<div class="empty">NO HAY SEÑAL EN ESTA CATEGORÍA<br>Prueba a actualizar o revisa otra sección.</div>`;
+    return;
+  }
+
+  main.innerHTML = list.map((item, i) => {
+    const href = safeHref(item.link);
+    const color = colorForCat(item.cat);
+    const saved = isSaved(item.link);
+    return `
+    <div class="card-wrap" data-idx="${i}">
+      <div class="swipe-layer"></div>
+      <div class="card" data-cat="${escapeHtml(item.cat)}" style="border-left-color:${color};">
+        <div class="card-meta">
+          <span class="cat-tag" style="background:${color};">${escapeHtml(catLabel(item.cat))}</span>
+          <span>${escapeHtml(item.source)}</span>
+          <span>&middot;</span>
+          <span>${escapeHtml(timeAgo(item.date))}</span>
+          <div class="card-actions">
+            <button type="button" class="icon-btn save-btn ${saved?'active':''}" data-action="save" title="Guardar para luego">${bookmarkIcon(14)}</button>
+            <button type="button" class="icon-btn discard-btn" data-action="discard" title="Descartar">✕</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-text">
+            <p class="card-title">${escapeHtml(item.title)}</p>
+            <a class="source-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Leer en ${escapeHtml(item.source)} ↗</a>
+          </div>
+          ${item.image ? `<img class="card-thumb" src="${escapeHtml(safeHref(item.image))}" loading="lazy" draggable="false" onerror="this.remove()">` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  main.querySelectorAll('.card-wrap').forEach(wrap=>{
+    const item = list[Number(wrap.dataset.idx)];
+    const card = wrap.querySelector('.card');
+
+    wrap.querySelector('[data-action="save"]').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      toggleSaved(item);
+      renderFeed();
+    });
+    wrap.querySelector('[data-action="discard"]').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      runDiscardAnimation(wrap, item);
+    });
+
+    attachSwipe(wrap, card, item);
+  });
+}
+
+// ---------- Gestos táctiles: deslizar para guardar / descartar ----------
+function attachSwipe(wrap, card, item){
+  if(ACTIVE_FILTER === 'guardados') return; // en Guardados no hace falta gesto de descarte
+  const swipeLayer = wrap.querySelector('.swipe-layer');
+  const threshold = 64; // umbral más cercano, como se pidió
+  const AXIS_LOCK_PX = 8; // píxeles de margen antes de decidir si es swipe horizontal o scroll vertical
+  let startX = 0, startY = 0, dx = 0, axis = null, active = false;
+
+  function paint(){
+    const intensity = Math.min(Math.abs(dx) / threshold, 1);
+    if(dx > 2){
+      swipeLayer.className = 'swipe-layer save';
+      swipeLayer.innerHTML = `<div class="swipe-action">${bookmarkIcon(14)} Guardar</div>`;
+    } else if(dx < -2){
+      swipeLayer.className = 'swipe-layer discard';
+      swipeLayer.innerHTML = `<div class="swipe-action">✕ Descartar</div>`;
+    } else {
+      swipeLayer.className = 'swipe-layer';
+    }
+    swipeLayer.style.opacity = intensity.toFixed(2);
+  }
+
+  function resetVisual(){
+    card.style.transition = '';
+    card.style.transform = 'translateX(0)';
+    swipeLayer.style.opacity = '0';
+    swipeLayer.className = 'swipe-layer';
+  }
+
+  function onStart(x, y){
+    active = true; axis = null; startX = x; startY = y; dx = 0;
+    card.style.transition = 'none';
+  }
+
+  // Devuelve true si el gesto se ha "bloqueado" como horizontal (para poder frenar el scroll)
+  function onMove(x, y){
+    if(!active) return false;
+    const rawDx = x - startX, rawDy = y - startY;
+    if(axis === null){
+      if(Math.abs(rawDx) < AXIS_LOCK_PX && Math.abs(rawDy) < AXIS_LOCK_PX) return false;
+      axis = Math.abs(rawDx) > Math.abs(rawDy) ? 'x' : 'y';
+      if(axis !== 'x'){ active = false; return false; } // es scroll vertical: lo soltamos
+    }
+    if(axis !== 'x') return false;
+    dx = rawDx;
+    card.style.transform = `translateX(${dx}px)`;
+    paint();
+    return true;
+  }
+
+  function onEnd(){
+    if(!active){ return; }
+    active = false;
+    card.style.transition = '';
+    if(axis === 'x'){
+      if(dx <= -threshold){
+        runDiscardAnimation(wrap, item);
+        return;
+      } else if(dx >= threshold){
+        toggleSaved(item);
+        resetVisual();
+        renderFeed();
+        return;
+      }
+    }
+    resetVisual();
+  }
+
+  // --- Táctil (móvil) ---
+  card.addEventListener('touchstart', e=>{
+    const t = e.touches[0];
+    onStart(t.clientX, t.clientY);
+  }, { passive:true });
+  card.addEventListener('touchmove', e=>{
+    const t = e.touches[0];
+    const locked = onMove(t.clientX, t.clientY);
+    if(locked) e.preventDefault(); // solo frenamos el scroll cuando SÍ es un swipe horizontal
+  }, { passive:false });
+  card.addEventListener('touchend', onEnd);
+  card.addEventListener('touchcancel', onEnd);
+
+  // --- Ratón (escritorio) ---
+  card.addEventListener('mousedown', e=>{
+    if(e.button !== 0) return;
+    onStart(e.clientX, e.clientY);
+    const onMouseMove = ev => onMove(ev.clientX, ev.clientY);
+    const onMouseUp = ()=>{
+      onEnd();
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  });
+}
+
+function runDiscardAnimation(wrap, item){
+  const card = wrap.querySelector('.card');
+  card.style.transition = 'transform .2s ease, opacity .2s ease';
+  card.style.transform = 'translateX(-110%)';
+  card.style.opacity = '0';
+  setTimeout(()=>{
+    dismissItem(item.link);
+    renderFeed();
+  }, 200);
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+let SOURCES_OPEN = false;
+let SOURCES_ERROR = '';
+
+function renderSourcesPanel(){
+  const root = document.getElementById('sourcesPanel');
+  if(!SOURCES_OPEN){ root.innerHTML = ''; return; }
+
+  const groups = getAllCategories().map(cat=>{
+    const feeds = FEEDS.filter(f=>f.cat===cat.id);
+    const rows = feeds.length
+      ? feeds.map(f=>`
+        <div class="sources-row">
+          <div style="overflow:hidden;">
+            <div class="sources-row-name">${escapeHtml(f.name)}</div>
+            <span class="sources-row-url">${escapeHtml(f.url)}</span>
+          </div>
+          <button class="remove-btn" data-remove="${escapeHtml(f.id)}" title="Quitar">✕</button>
+        </div>`).join('')
+      : `<div class="sources-empty">Sin fuentes en esta categoría</div>`;
+    return `<div class="sources-group">
+      <div class="sources-group-label">${escapeHtml(cat.label)}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="sources-panel">
+      <h3>Tus fuentes RSS</h3>
+      ${groups}
+      <div class="sources-form">
+        <input type="text" id="newFeedName" placeholder="Nombre (ej: Applesfera)">
+        <input type="url" id="newFeedUrl" placeholder="URL del RSS o de la web (https://...)">
+        <select id="newFeedCat">
+          ${getAllCategories().map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+        </select>
+        <button id="addFeedBtn">Añadir fuente</button>
+        ${SOURCES_ERROR ? `<div class="sources-error">${SOURCES_ERROR}</div>` : ''}
+      </div>
+    </div>`;
+
+  root.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      FEEDS = FEEDS.filter(f=>f.id !== btn.dataset.remove);
+      saveFeeds();
+      SOURCES_ERROR = '';
+      renderSourcesPanel();
+      loadAll();
+    });
+  });
+
+  document.getElementById('addFeedBtn').addEventListener('click', async ()=>{
+    const name = document.getElementById('newFeedName').value.trim();
+    const inputUrl = document.getElementById('newFeedUrl').value.trim();
+    const cat = document.getElementById('newFeedCat').value;
+    if(!name || !inputUrl){ SOURCES_ERROR = 'Rellena nombre y URL.'; renderSourcesPanel(); return; }
+    if(!/^https?:\/\//i.test(inputUrl)){ SOURCES_ERROR = 'La URL debe empezar por http:// o https://'; renderSourcesPanel(); return; }
+
+    const btn = document.getElementById('addFeedBtn');
+    btn.disabled = true; btn.textContent = 'Comprobando…';
+    SOURCES_ERROR = '';
+
+    try{
+      let finalUrl = inputUrl;
+      let note = '';
+
+      const worksDirectly = await urlIsValidFeed(inputUrl);
+      if(!worksDirectly){
+        const discovered = await discoverFeedUrl(inputUrl);
+        if(discovered && await urlIsValidFeed(discovered)){
+          finalUrl = discovered;
+          note = ' (feed detectado automáticamente)';
+        } else {
+          SOURCES_ERROR = 'Esa URL no parece tener un RSS accesible. Prueba a buscar "' + name + ' RSS" y pega el enlace directo al feed.';
+          renderSourcesPanel();
+          return;
+        }
+      }
+
+      if(!/^https?:\/\//i.test(finalUrl)){
+        SOURCES_ERROR = 'El feed detectado no usa http/https, no se puede añadir.';
+        renderSourcesPanel();
+        return;
+      }
+
+      FEEDS.push({ id:'u'+Date.now(), cat, name, url: finalUrl });
+      saveFeeds();
+      SOURCES_ERROR = '';
+      renderSourcesPanel();
+      loadAll();
+    } catch(err){
+      SOURCES_ERROR = 'No se pudo comprobar esa URL. Revisa tu conexión o el Worker.';
+      renderSourcesPanel();
+    }
+  });
+}
+
+async function urlIsValidFeed(url){
+  try{
+    const res = await fetchProxy(url);
+    if(!res.ok) return false;
+    const text = await res.text();
+    const doc = new DOMParser().parseFromString(text, 'text/xml');
+    if(doc.querySelector('parsererror')) return false;
+    const isAtom = doc.querySelector('feed') !== null;
+    const count = isAtom ? doc.querySelectorAll('entry').length : doc.querySelectorAll('item').length;
+    return count > 0;
+  }catch(e){ return false; }
+}
+
+async function discoverFeedUrl(pageUrl){
+  try{
+    const res = await fetchProxy(pageUrl);
+    if(!res.ok) return null;
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const link = doc.querySelector(
+      'link[type="application/rss+xml"], link[type="application/atom+xml"], link[type="application/feed+json"]'
+    );
+    if(!link) return null;
+    const href = link.getAttribute('href');
+    if(!href) return null;
+    return new URL(href, pageUrl).toString();
+  }catch(e){ return null; }
+}
+
+document.getElementById('sourcesBtn').addEventListener('click', ()=>{
+  SOURCES_OPEN = !SOURCES_OPEN;
+  if(SOURCES_OPEN){ CATEGORIES_OPEN = false; renderCategoriesPanel(); }
+  renderSourcesPanel();
+});
+
+// ---------- Panel de categorías (el usuario puede crear/eliminar categorías propias) ----------
+let CATEGORIES_OPEN = false;
+let CAT_ERROR = '';
+let CAT_PICKED_COLOR = SWATCHES[0];
+
+function renderCategoriesPanel(){
+  const root = document.getElementById('categoriesPanel');
+  if(!CATEGORIES_OPEN){ root.innerHTML = ''; return; }
+
+  const rows = getAllCategories().map(cat=>{
+    const isCustom = CUSTOM_CATEGORIES.some(c=>c.id===cat.id);
+    const inUse = FEEDS.some(f=>f.cat===cat.id);
+    return `<div class="cat-row">
+      <div class="cat-row-name">
+        <span class="cat-row-swatch" style="background:${cat.color};"></span>
+        ${escapeHtml(cat.label)}
+      </div>
+      ${isCustom ? `<button class="remove-btn" data-remove-cat="${escapeHtml(cat.id)}" title="${inUse ? 'Quita antes las fuentes de esta categoría' : 'Eliminar categoría'}" ${inUse?'disabled':''}>✕</button>` : ''}
+    </div>`;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="sources-panel">
+      <h3>Tus categorías</h3>
+      ${rows}
+      <div class="sources-form">
+        <input type="text" id="newCatName" placeholder="Nombre (ej: Inteligencia Artificial)">
+        <div class="swatches" id="catSwatches">
+          ${SWATCHES.map(c=>`<button type="button" class="swatch ${c===CAT_PICKED_COLOR?'selected':''}" data-color="${c}" style="background:${c};"></button>`).join('')}
+        </div>
+        <button id="addCatBtn">Añadir categoría</button>
+        ${CAT_ERROR ? `<div class="sources-error">${escapeHtml(CAT_ERROR)}</div>` : ''}
+      </div>
+    </div>`;
+
+  root.querySelectorAll('[data-remove-cat]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.disabled) return;
+      CUSTOM_CATEGORIES = CUSTOM_CATEGORIES.filter(c=>c.id !== btn.dataset.removeCat);
+      saveCustomCategories();
+      if(ACTIVE_FILTER === btn.dataset.removeCat) ACTIVE_FILTER = 'all';
+      CAT_ERROR = '';
+      renderCategoriesPanel();
+      renderFilters();
+      renderFeed();
+    });
+  });
+
+  root.querySelectorAll('.swatch').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      CAT_PICKED_COLOR = btn.dataset.color;
+      renderCategoriesPanel();
+    });
+  });
+
+  document.getElementById('addCatBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('newCatName').value.trim();
+    if(!name){ CAT_ERROR = 'Escribe un nombre para la categoría.'; renderCategoriesPanel(); return; }
+    const id = 'c' + name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') + Date.now().toString(36);
+    if(getAllCategories().some(c=>c.label.toLowerCase()===name.toLowerCase())){
+      CAT_ERROR = 'Ya existe una categoría con ese nombre.'; renderCategoriesPanel(); return;
+    }
+    CUSTOM_CATEGORIES.push({ id, label:name, color:CAT_PICKED_COLOR });
+    saveCustomCategories();
+    CAT_ERROR = '';
+    renderCategoriesPanel();
+    renderFilters();
+  });
+}
+
+document.getElementById('categoriesBtn').addEventListener('click', ()=>{
+  CATEGORIES_OPEN = !CATEGORIES_OPEN;
+  if(CATEGORIES_OPEN){ SOURCES_OPEN = false; renderSourcesPanel(); }
+  renderCategoriesPanel();
+});
+
+document.getElementById('footer').innerHTML = PROXY_READY
+  ? `SEÑAL lee RSS en tiempo real a través de tu propio proxy. Tus fuentes se guardan en este navegador (no se sincronizan entre dispositivos).<br>
+     Fuentes activas: ${FEEDS.map(f=>escapeHtml(f.name)).join(', ') || 'ninguna'}.<br>
+     <button id="legalBtn" style="background:none;border:none;padding:0;color:inherit;text-decoration:underline;font:inherit;cursor:pointer;">Aviso legal · Privacidad · Cookies</button> &middot;
+     <span style="opacity:0.6">build v11</span>`
+  : `Consulta rss-proxy-worker.js para poner en marcha tu proxy gratuito y activar la lectura en vivo.`;
+
+const LEGAL_TITULAR = 'Javier Rubinos Dacuña';
+const LEGAL_CONTACTO = 'J.rubinos@hotmail.com';
+const LEGAL_FECHA = '22 de julio de 2026';
+
+function closeLegal(){
+  document.getElementById('legalRoot').innerHTML = '';
+}
+
+function openLegal(){
+  const root = document.getElementById('legalRoot');
+  root.innerHTML = `
+    <div class="legal-overlay" id="legalOverlay">
+      <div class="legal-panel">
+        <div class="legal-top">
+          <h2>Aviso legal, privacidad y cookies</h2>
+          <button class="legal-close" id="legalCloseBtn">Cerrar ✕</button>
+        </div>
+        <div class="legal-body">
+
+          <h3>1. Aviso legal (LSSI-CE)</h3>
+          <p>En cumplimiento del artículo 10 de la Ley 34/2002 (LSSI-CE):</p>
+          <ul>
+            <li><b>Titular:</b> ${escapeHtml(LEGAL_TITULAR)}</li>
+            <li><b>Contacto:</b> ${escapeHtml(LEGAL_CONTACTO)}</li>
+            <li><b>Finalidad:</b> agregador personal de noticias tecnológicas mediante feeds RSS de terceros, sin ánimo de lucro ni finalidad comercial.</li>
+            <li><b>Alojamiento:</b> GitHub Pages (GitHub, Inc. / Microsoft) y Cloudflare Workers (Cloudflare, Inc.).</li>
+          </ul>
+
+          <h3>2. Privacidad (RGPD / LOPDGDD)</h3>
+          <h4>Responsable del tratamiento</h4>
+          <p>${escapeHtml(LEGAL_TITULAR)} — ${escapeHtml(LEGAL_CONTACTO)}</p>
+
+          <h4>Qué datos se tratan</h4>
+          <p>SEÑAL no tiene registro de usuarios, formularios, analítica ni cookies de seguimiento. No se recopilan datos personales de forma directa. Por transparencia:</p>
+          <ul>
+            <li><b>Alojamiento (GitHub Pages):</b> procesa técnicamente tu IP para entregar los archivos, como cualquier servidor web, conforme a la política de privacidad de GitHub.</li>
+            <li><b>Proxy de noticias (Cloudflare Workers):</b> cuando pides un feed, la petición pasa por un Worker que actúa de intermediario. Cloudflare procesa tu IP de forma transitoria para enrutarla, conforme a su propia política. Esto además mejora tu privacidad: los medios de noticias no ven tu IP directamente.</li>
+            <li><b>Preferencias locales:</b> tus fuentes RSS se guardan solo en el almacenamiento local de tu navegador, sin enviarse a ningún servidor propio.</li>
+          </ul>
+
+          <h4>Base jurídica</h4>
+          <p>Interés legítimo de prestar el servicio solicitado (art. 6.1.f RGPD), limitado a lo estrictamente necesario.</p>
+
+          <h4>Tus derechos</h4>
+          <p>Puedes ejercer acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a ${escapeHtml(LEGAL_CONTACTO)}, o reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">AEPD</a>.</p>
+
+          <h4>Transferencias internacionales</h4>
+          <p>GitHub y Cloudflare pueden procesar datos técnicos fuera del EEE, acogidos a mecanismos reconocidos por la Comisión Europea (Marco de Privacidad de Datos UE-EE.UU. o cláusulas contractuales tipo).</p>
+
+          <h3>3. Cookies y almacenamiento local</h3>
+          <p>SEÑAL <b>no usa cookies</b>. Usa <code>localStorage</code> únicamente para recordar en este dispositivo tus fuentes RSS, tus categorías propias, las noticias que guardas o descartas, y tu preferencia de tema claro/oscuro.</p>
+          <ul>
+            <li>No se usa para rastrearte ni con fines publicitarios, ni se comparte con nadie.</li>
+            <li>Los datos no salen de tu navegador.</li>
+            <li>Puedes borrarlo desde los ajustes de tu navegador ("borrar datos de sitio").</li>
+          </ul>
+          <p>Por su naturaleza estrictamente funcional, este uso está exento del deber de consentimiento previo conforme al art. 22.2 LSSI-CE. Si en el futuro se añadiera analítica o publicidad, este aviso debería actualizarse con un banner de consentimiento previo.</p>
+
+          <h3>4. Contenido de terceros y propiedad intelectual</h3>
+          <p>SEÑAL muestra titulares y resúmenes cortos de feeds RSS públicos, enlazando siempre a la fuente original, sin reproducir el artículo completo. Los derechos de cada noticia pertenecen a su medio de origen; SEÑAL actúa como mero agregador/enlazador.</p>
+
+          <div class="legal-note">Última actualización: ${escapeHtml(LEGAL_FECHA)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('legalCloseBtn').addEventListener('click', closeLegal);
+  document.getElementById('legalOverlay').addEventListener('click', e=>{
+    if(e.target.id === 'legalOverlay') closeLegal();
+  });
+}
+
+document.getElementById('legalBtn').addEventListener('click', openLegal);
+
+renderFilters();
+initFeed();
+</script>
+</body>
+</html>
